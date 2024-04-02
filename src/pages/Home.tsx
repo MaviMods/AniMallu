@@ -201,7 +201,7 @@ const Home = () => {
   }, [itemsCount]);
 
   useEffect(() => {
-    document.title = `Miruro | Watch Anime for Free in HD`;
+    document.title = `AniMallu | Watch Anime for Free in HD`;
   }, [activeTab]);
 
   useEffect(() => {
