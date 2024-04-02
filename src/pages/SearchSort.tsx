@@ -25,7 +25,7 @@ const SearchSort = () => {
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = query ? `${query} - Miruro` : 'Miruro';
+    document.title = query ? `${query} - AniMallu` : 'AniMallu';
     return () => {
       document.title = previousTitle;
     };
