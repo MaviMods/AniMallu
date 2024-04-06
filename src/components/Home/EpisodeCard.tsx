@@ -138,6 +138,8 @@ const calculateSlidesPerView = (windowWidth: number): number => {
   return 2;
 };
 
+export const EpisodeCard: React.FC = () => {
+
 const AnimeEpisodeCardComponent: React.FC = () => {
   const watchedEpisodesData = useMemo(
     () => localStorage.getItem('watched-episodes'),
@@ -254,5 +256,3 @@ const AnimeEpisodeCardComponent: React.FC = () => {
     </Section>
   );
 };
-
-export default AnimeEpisodeCardComponent;
