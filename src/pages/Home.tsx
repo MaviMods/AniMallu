@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import CarouselTrending from '../components/Home/HomeCarousel';
-import CardGrid, { StyledCardGrid } from '../components/Cards/CardGrid';
-import CarouselSkeleton from '../components/Skeletons/CarouselSkeleton';
-import CardSkeleton from '../components/Skeletons/CardSkeleton';
 import {
+  HomeCarousel as CarouselTrending,
+  CardGrid,
+  StyledCardGrid, // Assuming StyledCardGrid is a named export you want to use directly
+  SkeletonSlide,
+  SkeletonCard,
   fetchTrendingAnime,
   fetchPopularAnime,
   fetchTopAnime,
-  fetchRecentEpisodes, // Import the fetch function for recent episodes
-} from '../hooks/useApi';
-import AnimeEpisodeCardComponent from '../components/Home/EpisodeCard';
+  fetchRecentEpisodes,
+  EpisodeCard as AnimeEpisodeCardComponent, // Assuming EpisodeCard is the actual export name
+} from '../index'; // Adjust the import path to point correctly to your index.ts location
+import { Episode } from '../index';
 
 const SimpleLayout = styled.div`
   display: flex;
@@ -20,13 +22,6 @@ const SimpleLayout = styled.div`
   max-width: 125rem;
   border-radius: var(--global-border-radius);
 `;
-
-interface AnimeEpisode {
-  id: string;
-  title?: string;
-  number: number;
-  image: string;
-}
 
 const TabContainer = styled.div`
   display: flex; /* Make it a flex container */
@@ -40,7 +35,7 @@ const TabContainer = styled.div`
 const Tab = styled.button<{ $isActive: boolean }>`
   background: ${({ $isActive }) =>
     $isActive ? 'var(--primary-accent)' : 'transparent'};
-  padding: 0.8rem 1rem 0.8rem 1rem;
+  padding: 1rem;
   border-radius: var(--global-border-radius);
   border: none;
   cursor: pointer;
@@ -53,7 +48,9 @@ const Tab = styled.button<{ $isActive: boolean }>`
 
   transition: background-color 0.3s ease;
 
-  &:hover {
+  &:hover,
+  &:active,
+  &:focus {
     background: var(--primary-accent);
   }
   @media (max-width: 500px) {
@@ -84,7 +81,7 @@ const ErrorMessage = styled.div`
 `;
 
 const Home = () => {
-  const [watchedEpisodes, setWatchedEpisodes] = useState<AnimeEpisode[]>([]);
+  const [, /* watchedEpisodes */ setWatchedEpisodes] = useState<Episode[]>([]);
   const [itemsCount, setItemsCount] = useState(
     window.innerWidth > 500 ? 14 : 12,
   );
@@ -133,7 +130,7 @@ const Home = () => {
       const watchedEpisodesData = localStorage.getItem('watched-episodes');
       if (watchedEpisodesData) {
         const allEpisodes = JSON.parse(watchedEpisodesData);
-        const latestEpisodes: AnimeEpisode[] = []; // Correctly typed
+        const latestEpisodes: Episode[] = []; // Correctly typed
 
         Object.keys(allEpisodes).forEach((animeId) => {
           const episodes = allEpisodes[animeId];
@@ -201,7 +198,7 @@ const Home = () => {
   }, [itemsCount]);
 
   useEffect(() => {
-    document.title = `AniMallu | Watch Anime for Free in HD`;
+    document.title = `AniMallu | Watch HD Anime for Free`;
   }, [activeTab]);
 
   useEffect(() => {
@@ -219,7 +216,7 @@ const Home = () => {
       {isLoading || hasError ? (
         <StyledCardGrid>
           {Array.from({ length: 14 }, (_, index) => (
-            <CardSkeleton key={index} />
+            <SkeletonCard key={index} />
           ))}
         </StyledCardGrid>
       ) : (
@@ -239,11 +236,11 @@ const Home = () => {
     <SimpleLayout>
       {error && (
         <ErrorMessage title='Error Message'>
-          <p>Error: {error}</p>
+          <p>ERROR: {error}</p>
         </ErrorMessage>
       )}
       {loading.trending || error ? (
-        <CarouselSkeleton />
+        <SkeletonSlide />
       ) : (
         <CarouselTrending
           data={trendingAnime}
