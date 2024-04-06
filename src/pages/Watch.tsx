@@ -2,18 +2,21 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
 import styled from 'styled-components';
-import EpisodeList from '../components/Watch/EpisodeList';
-import { Player } from '../components/Watch/Video/Player';
-import EmbedPlayer from '../components/Watch/Video/EmbedPlayer';
-import AnimeData from '../components/Watch/WatchAnimeData';
-import VideoSourceSelector from '../components/Watch/VideSourceSelector';
 import {
+  EpisodeList,
+  Player,
+  EmbedPlayer,
+  WatchAnimeData as AnimeData,
+  RecommendedList,
+  MediaSource,
   fetchAnimeEmbeddedEpisodes,
   fetchAnimeEpisodes,
   fetchAnimeData,
   fetchAnimeInfo,
-} from '../hooks/useApi';
-import VideoPlayerSkeleton from '../components/Skeletons/VideoPlayerSkeleton';
+  SkeletonPlayer,
+  Seasons,
+} from '../index';
+import { Episode } from '../index';
 
 // Styled Components
 
@@ -21,6 +24,7 @@ const WatchContainer = styled.div``;
 
 const WatchWrapper = styled.div`
   font-size: 0.9rem;
+  gap: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35,14 +39,20 @@ const WatchWrapper = styled.div`
 
 const DataWrapper = styled.div`
   display: grid;
-  grid-template-columns: 3fr 1fr; // Aim for a 3:1 ratio
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr; // Aim for a 3:1 ratio
   width: 100%; // Make sure this container can expand enough
+  @media (max-width: 1000px) {
+    grid-template-columns: auto;
+  }
 `;
 
 const SourceAndData = styled.div``;
 
-const RalationsTable = styled.div``;
-
+const RalationsTable = styled.div`
+  paddding: 0;
+  margin-top: 1rem;
+`;
 const VideoPlayerContainer = styled.div`
   position: relative;
   width: 100%;
@@ -51,14 +61,9 @@ const VideoPlayerContainer = styled.div`
   @media (min-width: 1000px) {
     flex: 1 1 auto;
   }
-
-  @media (max-width: 1000px) {
-    padding-bottom: 0.8rem;
-  }
 `;
 
 const EpisodeListContainer = styled.div`
-  padding-left: 0.8rem;
   width: 100%;
   max-height: 100%;
 
@@ -88,15 +93,21 @@ const GoToHomePageButton = styled.a`
   border-radius: var(--global-border-radius);
   background-color: var(--primary-accent);
   margin-top: 1rem;
-  padding: 0.7rem 0.8rem;
-  transform: translate(-50%, -50%) scaleX(1.1);
+  padding: 1rem;
+  transform: translate(-50%, -50%);
   transition: transform 0.2s ease-in-out;
   text-decoration: none;
 
-  &:hover {
-    transform: translate(-50%, -50%) scaleX(1.1) scale(1.1);
+  &:hover,
+  &:active,
+  &:focus {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  &:active {
+    transform: translate(-50%, -50%) scale(0.95);
   }
 `;
+
 const IframeTrailer = styled.iframe`
   aspect-ratio: 16/9;
   position: relative;
@@ -120,24 +131,14 @@ const LOCAL_STORAGE_KEYS = {
   WATCHED_EPISODES: 'watched-episodes-',
 };
 
-// Interfaces
-
-interface Episode {
-  id: string;
-  number: number;
-  title: string;
-  image: string;
-}
-
-interface CurrentEpisode {
-  id: string;
-  number: number;
-  image: string;
-}
-const useCountdown = (targetDate) => {
+const useCountdown = (targetDate: number | null) => {
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
+    if (!targetDate) {
+      return; // Exit early if targetDate is null or undefined
+    }
+
     const timer = setInterval(() => {
       const now = Date.now();
       const distance = targetDate - now;
@@ -166,8 +167,8 @@ const useCountdown = (targetDate) => {
 };
 
 // Main Component
-const getSourceTypeKey = (animeId: any) => `source-[${animeId}]`;
-const getLanguageKey = (animeId: any) => `subOrDub-[${animeId}]`;
+const getSourceTypeKey = (animeId: string | undefined) => `source-[${animeId}]`;
+const getLanguageKey = (animeId: string | undefined) => `subOrDub-[${animeId}]`;
 const Watch: React.FC = () => {
   const videoPlayerContainerRef = useRef<HTMLDivElement>(null);
   const [videoPlayerWidth, setVideoPlayerWidth] = useState('100%'); // Default to 100%
@@ -190,7 +191,7 @@ const Watch: React.FC = () => {
     useState<string>('100%');
 
   const { animeId, animeTitle, episodeNumber } = useParams<{
-    animeId: string;
+    animeId?: string;
     animeTitle?: string;
     episodeNumber?: string;
   }>();
@@ -203,10 +204,14 @@ const Watch: React.FC = () => {
   const [selectedBackgroundImage, setSelectedBackgroundImage] =
     useState<string>('');
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [currentEpisode, setCurrentEpisode] = useState<CurrentEpisode>({
+  const [currentEpisode, setCurrentEpisode] = useState<Episode>({
     id: '0',
     number: 1,
+    title: '',
     image: '',
+    description: '',
+    imageHash: '',
+    airDate: '',
   });
   const [animeInfo, setAnimeInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -236,10 +241,11 @@ const Watch: React.FC = () => {
     // or maintain the setting from the previous anime. This example resets to defaults.
 
     setSourceType(
-      localStorage.getItem(getSourceTypeKey(animeId)) || defaultSourceType,
+      localStorage.getItem(getSourceTypeKey(animeId || '')) ||
+        defaultSourceType,
     );
     setLanguage(
-      localStorage.getItem(getLanguageKey(animeId)) || defaultLanguage,
+      localStorage.getItem(getLanguageKey(animeId || '')) || defaultLanguage,
     );
   }, [animeId]);
 
@@ -327,7 +333,7 @@ const Watch: React.FC = () => {
           const navigateToEpisode = (() => {
             if (languageChanged) {
               const currentEpisodeNumber =
-                parseInt(episodeNumber) || currentEpisode.number;
+                episodeNumber || currentEpisode.number;
               // Try to find the current episode in the new language or default to the last available episode
               return (
                 transformedEpisodes.find(
@@ -362,6 +368,10 @@ const Watch: React.FC = () => {
               id: navigateToEpisode.id,
               number: navigateToEpisode.number,
               image: navigateToEpisode.image,
+              title: navigateToEpisode.title,
+              description: navigateToEpisode.description,
+              imageHash: navigateToEpisode.imageHash,
+              airDate: navigateToEpisode.airDate,
             });
 
             const newAnimeTitle = navigateToEpisode.id.split('-episode-')[0];
@@ -439,6 +449,10 @@ const Watch: React.FC = () => {
         id: selectedEpisode.id,
         number: selectedEpisode.number,
         image: selectedEpisode.image,
+        title: selectedEpisode.title,
+        description: selectedEpisode.description,
+        imageHash: selectedEpisode.imageHash,
+        airDate: selectedEpisode.airDate,
       });
 
       localStorage.setItem(
@@ -469,6 +483,12 @@ const Watch: React.FC = () => {
   //next episode shortcut with 500ms delay.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if the event target is an input or textarea element
+      const targetTagName = (event.target as HTMLElement).tagName.toLowerCase();
+      if (targetTagName === 'input' || targetTagName === 'textarea') {
+        return; // Exit the function if event is from input or textarea
+      }
+
       if (!event.shiftKey || !['N', 'P'].includes(event.key.toUpperCase()))
         return;
       const now = Date.now();
@@ -500,13 +520,13 @@ const Watch: React.FC = () => {
   useEffect(() => {
     if (animeInfo && animeInfo.title) {
       document.title =
-        'AniMallu | ' +
+        'Miruro | ' +
         (animeInfo.title.english ||
           animeInfo.title.romaji ||
           animeInfo.title.romaji ||
           '');
     } else {
-      document.title = 'AniMallu';
+      document.title = 'Miruro';
     }
 
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -624,8 +644,12 @@ const Watch: React.FC = () => {
     let isMounted = true;
 
     const fetchInfo = async () => {
+      if (!animeId) {
+        console.error('Anime ID is undefined.');
+        return; // Exit if animeId is undefined
+      }
+
       try {
-        // Assuming fetchAnimeData is your method to fetch anime data
         const info = await fetchAnimeData(animeId);
         if (isMounted) {
           setAnimeInfo(info); // Update animeInfo state
@@ -640,116 +664,4 @@ const Watch: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [animeId]); // Dependency array to re-run the effect when animeId changes
-  const updateDownloadLink = useCallback((link: string) => {
-    setDownloadLink(link);
-  }, []);
-
-  return (
-    <WatchContainer>
-      {animeInfo &&
-      animeInfo.status === 'Not yet aired' &&
-      animeInfo.trailer ? (
-        // Display the trailer if the anime has not yet aired and has a trailer
-        <div style={{ textAlign: 'center' }}>
-          <strong>
-            <h2>Time until next episode:</h2>
-          </strong>
-          <p>
-            <h4>
-              {animeInfo &&
-              animeInfo.nextAiringEpisode &&
-              countdown !== 'Airing now or aired' ? (
-                <>
-                  <FaBell /> {countdown}
-                </>
-              ) : (
-                'Unknown'
-              )}
-            </h4>
-          </p>
-          {animeInfo.trailer && (
-            <IframeTrailer
-              src={`https://www.youtube.com/embed/${animeInfo.trailer.id}`}
-              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-              allowFullScreen
-            />
-          )}
-        </div>
-      ) : showNoEpisodesMessage ? (
-        // Condition for displaying the "No episodes found" div
-        <NoEpsFoundDiv>
-          <h2>No episodes found :(</h2>
-          <GoToHomePageButton href='/home'>Home</GoToHomePageButton>
-        </NoEpsFoundDiv>
-      ) : (
-        // Render content when episodes are found
-        <WatchWrapper>
-          {!showNoEpisodesMessage && (
-            <>
-              <VideoPlayerContainer ref={videoPlayerContainerRef}>
-                {loading ? (
-                  <VideoPlayerSkeleton />
-                ) : sourceType === 'default' ? (
-                  <Player
-                    episodeId={currentEpisode.id}
-                    malId={animeInfo?.malId}
-                    banner={selectedBackgroundImage}
-                    updateDownloadLink={updateDownloadLink}
-                  />
-                ) : (
-                  <EmbedPlayer src={embeddedVideoUrl} />
-                )}
-              </VideoPlayerContainer>
-              <EpisodeListContainer style={{ maxHeight: maxEpisodeListHeight }}>
-                {loading ? (
-                  <VideoPlayerSkeleton />
-                ) : (
-                  <EpisodeList
-                    animeId={animeId}
-                    episodes={episodes}
-                    selectedEpisodeId={currentEpisode.id}
-                    onEpisodeSelect={(episodeId: string) => {
-                      const episode = episodes.find((e) => e.id === episodeId);
-                      if (episode) {
-                        handleEpisodeSelect(episode);
-                      }
-                    }}
-                    maxListHeight={maxEpisodeListHeight}
-                  />
-                )}
-              </EpisodeListContainer>
-            </>
-          )}
-        </WatchWrapper>
-      )}
-      <DataWrapper>
-        <SourceAndData style={{ width: videoPlayerWidth }}>
-          {/* Conditionally render VideoSourceSelector based on anime airing status */}
-          {animeInfo && animeInfo.status !== 'Not yet aired' && (
-            <VideoSourceSelector
-              sourceType={sourceType}
-              setSourceType={setSourceType}
-              language={language}
-              setLanguage={setLanguage}
-              downloadLink={downloadLink}
-              episodeId={currentEpisode.number.toString()} // Ensure this is a string if your component expects it
-              airingTime={
-                animeInfo && animeInfo.status === 'Ongoing'
-                  ? countdown
-                  : undefined
-              }
-              nextEpisodenumber={nextEpisodenumber}
-            />
-          )}
-          {animeInfo && <AnimeData animeData={animeInfo} />}
-        </SourceAndData>
-        <RalationsTable>
-          {/* Second row content (optional for your use case) */}
-        </RalationsTable>
-      </DataWrapper>
-    </WatchContainer>
-  );
-};
-
-export default Watch;
+  }, [animeId]); // Dependency array to re-run the effect 
