@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import CardSkeleton from '../Skeletons/CardSkeleton';
+import { SkeletonCard, type Anime } from '../../index';
 import { MdLayers } from 'react-icons/md'; // For the stacked/layered icon
 import { FaPlay } from 'react-icons/fa'; // For the heart icon
 import { BiSolidLike } from 'react-icons/bi';
@@ -181,7 +181,7 @@ const CardItemContent: React.FC<{ anime: Anime }> = ({ anime }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 0);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [anime.id]);
@@ -240,7 +240,7 @@ const CardItemContent: React.FC<{ anime: Anime }> = ({ anime }) => {
   return (
     <>
       {loading ? (
-        <CardSkeleton />
+        <SkeletonCard />
       ) : (
         <StyledCardWrapper
           onClick={handleCardClick}
