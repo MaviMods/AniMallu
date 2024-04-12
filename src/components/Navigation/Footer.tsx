@@ -131,7 +131,7 @@ function Footer() {
             <SocialIconsWrapper>
               {[
                 {
-                  href: 'https://t.me/mavimods2',
+                  href: 'https://t.me/MODSMAVI',
                   Icon: FaTelegram,
                   label: 'Telegram',
                 },
