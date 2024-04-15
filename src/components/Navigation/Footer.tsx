@@ -1,10 +1,12 @@
 import styled from 'styled-components';
-import { FaReddit, FaDiscord, FaTelegram, FaGithub } from 'react-icons/fa';
+import { FaReddit, FaDiscord, FaTwitter, FaTelegram, FaGithub } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 const PageWrapper = styled.div`
-  padding: 0 1rem;
   margin-top: 2rem;
+  @media (max-width: 1000px) {
+    padding: 0 0.5rem;
+  }
 `;
 
 const FooterBaseContainer = styled.footer<{ $isSub: boolean }>`
@@ -102,7 +104,7 @@ const ShareButton = styled.a`
   }
 `;
 
-function Footer() {
+export function Footer() {
   return (
     <PageWrapper>
       <footer>
@@ -120,6 +122,7 @@ function Footer() {
             <FooterLink to='/pptos' title='Privacy Policy and Terms of Service'>
               Privacy & ToS
             </FooterLink>
+            
           </StyledLinkList>
         </FooterBaseContainer>
         <FooterBaseContainer aria-label='Sub Footer' $isSub={true}>
@@ -133,20 +136,22 @@ function Footer() {
                 {
                   href: 'https://t.me/MODSMAVI',
                   Icon: FaTelegram,
-                  label: 'Telegram',
+                  label: 'Twitter',
                 },
+                
                 {
                   href: 'https://github.com/MaviMods',
                   Icon: FaGithub,
                   label: 'GitHub',
                 },
+              
               ].map(({ href, Icon, label }) => (
                 <ShareButton
                   key={href}
                   href={href}
                   target='_blank'
                   rel='noopener noreferrer'
-                  aria-label={`AniMallu on ${label}`}
+                  aria-label={`Miruro on ${label}`}
                 >
                   <Icon aria-hidden='true' />
                 </ShareButton>
@@ -158,5 +163,3 @@ function Footer() {
     </PageWrapper>
   );
 }
-
-export default Footer;
