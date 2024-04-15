@@ -8,9 +8,33 @@ import {
 } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/swiper-bundle.css';
+import { Episode } from '../../hooks/interface';
+import { IoIosCloseCircleOutline } from 'react-icons/io';
+
+const LOCAL_STORAGE_KEYS = {
+  WATCHED_EPISODES: 'watched-episodes',
+  LAST_ANIME_VISITED: 'last-anime-visited',
+};
+
+interface LastEpisodes {
+  [key: string]: Episode;
+}
+
+interface LastVisitedData {
+  [key: string]: {
+    timestamp?: number;
+    titleEnglish?: string;
+    titleRomaji?: string;
+  };
+}
 
 const popInAnimation = keyframes`
   0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0%); }
+`;
+
+const slideDownAnimation = keyframes`
+  0% { opacity: 0; transform: translateY(-20px); }
   100% { opacity: 1; transform: translateY(0%); }
 `;
 
@@ -50,7 +74,9 @@ const AnimeEpisodeCard = styled(Link)`
   transition: 0.2s ease-in-out;
   transition-delay: 0.25s;
 
-  &:hover {
+  &:hover,
+  &:active,
+  &:focus {
     box-shadow: 2px 2px 10px var(--global-card-hover-shadow);
     ${PlayIcon} {
       opacity: 1;
@@ -62,8 +88,10 @@ const AnimeEpisodeCard = styled(Link)`
   }
 
   @media (min-width: 768px) {
-    &:hover {
-      transform: translateY(-10px);
+    &:hover,
+    &:active,
+    &:focus {
+      // transform: translateY(-10px);
     }
   }
 
@@ -119,16 +147,39 @@ const ProgressBar = styled.div`
 
 const ContinueWatchingTitle = styled.h2`
   color: var(--global-text);
-  font-size: 1.5rem;
-  margin-bottom: 0; // Adjust the margin as needed
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem; // Adjust the margin as needed
 `;
 
-interface AnimeEpisode {
-  id: string;
-  title?: string;
-  number: number;
-  image: string;
-}
+const CloseButton = styled.button`
+  position: absolute;
+  top: 0.25rem; // Adjust based on design requirements
+  right: 0.25rem; // Adjust based on design requirements
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: none; // Hidden by default
+  animation: ${slideDownAnimation} 0.5s ease forwards;
+  transition: 0.2s ease-in-out;
+
+  svg {
+    transition: 0.2s ease-in-out;
+    transform: scale(0.85);
+    &:hover,
+    &:active,
+    &:focus {
+      transform: scale(1);
+    }
+  }
+  ${AnimeEpisodeCard}:hover & {
+    display: block; // Show only on hover
+  }
+`;
+
+const FaCircle = styled(IoIosCloseCircleOutline)`
+  font-size: 2.25rem;
+`;
 
 const calculateSlidesPerView = (windowWidth: number): number => {
   if (windowWidth >= 1200) return 5;
@@ -139,13 +190,15 @@ const calculateSlidesPerView = (windowWidth: number): number => {
 };
 
 export const EpisodeCard: React.FC = () => {
-
-const AnimeEpisodeCardComponent: React.FC = () => {
-  const watchedEpisodesData = useMemo(
-    () => localStorage.getItem('watched-episodes'),
-    [],
+  const [watchedEpisodesData, setWatchedEpisodesData] = useState(
+    localStorage.getItem('watched-episodes'),
   );
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  const lastVisitedData = useMemo<LastVisitedData>(() => {
+    const data = localStorage.getItem(LOCAL_STORAGE_KEYS.LAST_ANIME_VISITED);
+    return data ? JSON.parse(data) : {};
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -162,49 +215,80 @@ const AnimeEpisodeCardComponent: React.FC = () => {
   const episodesToRender = useMemo(() => {
     if (!watchedEpisodesData) return [];
     try {
-      const allEpisodes: Record<string, AnimeEpisode[]> =
+      const allEpisodes: Record<string, Episode[]> =
         JSON.parse(watchedEpisodesData);
-      return Object.entries(allEpisodes).map(([animeId, animeEpisodes]) => {
-        const lastEpisode = animeEpisodes[animeEpisodes.length - 1];
+
+      const lastEpisodes = Object.entries(allEpisodes).reduce<LastEpisodes>(
+        (acc, [animeId, episodes]) => {
+          const lastEpisode = episodes[episodes.length - 1]; // Assuming the episodes are in order
+          if (lastEpisode) {
+            acc[animeId] = lastEpisode;
+          }
+          return acc;
+        },
+        {},
+      );
+
+      const orderedAnimeIds = Object.keys(lastEpisodes).sort((a, b) => {
+        const lastVisitedA = lastVisitedData[a]?.timestamp || 0;
+        const lastVisitedB = lastVisitedData[b]?.timestamp || 0;
+        return lastVisitedB - lastVisitedA;
+      });
+
+      return orderedAnimeIds.map((animeId) => {
+        const episode = lastEpisodes[animeId];
         const playbackInfo = JSON.parse(
           localStorage.getItem('all_episode_times') || '{}',
-        );
+        ) as { [key: string]: { playbackPercentage: number } };
+
         const playbackPercentage =
-          playbackInfo[lastEpisode.id]?.playbackPercentage || 0;
+          playbackInfo[episode.id]?.playbackPercentage || 0;
+
+        // Determine anime title, preferring English, falling back to Romaji, then to "Episode Title"
+        const animeTitle =
+          lastVisitedData[animeId]?.titleEnglish ||
+          lastVisitedData[animeId]?.titleRomaji ||
+          '';
+
+        // Conditional title display
+        const displayTitle = `${animeTitle}${episode.title ? ` - ${episode.title}` : ''}`;
+
+        const handleRemoveAllEpisodes = (animeId: string) => {
+          const updatedEpisodes = JSON.parse(watchedEpisodesData || '{}');
+          delete updatedEpisodes[animeId];
+
+          const newWatchedEpisodesData = JSON.stringify(updatedEpisodes);
+          localStorage.setItem('watched-episodes', newWatchedEpisodesData);
+          setWatchedEpisodesData(newWatchedEpisodesData); // Trigger re-render
+        };
+
         return (
-          <StyledSwiperSlide key={lastEpisode.id}>
+          <StyledSwiperSlide key={episode.id}>
             <AnimeEpisodeCard
               to={`/watch/${animeId}`}
               style={{ textDecoration: 'none' }}
+              title={`Continue Watching ${displayTitle}`}
             >
-              <img
-                src={lastEpisode.image}
-                alt={`Cover for ${lastEpisode.id}`}
-              />
-              <PlayIcon>
+              <img src={episode.image} alt={`Cover for ${animeTitle}`} />
+              <PlayIcon aria-label='Play Episode'>
                 <FaPlay />
               </PlayIcon>
               <div className='episode-info'>
-                <p className='episode-title'>
-                  {lastEpisode.id
-                    ? lastEpisode.id
-                        .split('-')
-                        .slice(0, -2)
-                        .map(
-                          (part) =>
-                            part.charAt(0).toUpperCase() + part.slice(1),
-                        )
-                        .join(' ')
-                        .slice(0, 30)
-                    : ''}
-                </p>
-                <p className='episode-number'>
-                  {windowWidth > 500
-                    ? `Episode ${lastEpisode.number}${lastEpisode.title ? `: ${lastEpisode.title}` : ''}`
-                    : `Episode ${lastEpisode.number}`}
-                </p>
+                <p className='episode-title'>{displayTitle}</p>
+                <p className='episode-number'>{`Episode ${episode.number}`}</p>
               </div>
-              <ProgressBar style={{ width: `${playbackPercentage}%` }} />
+              <ProgressBar
+                style={{ width: `${Math.max(playbackPercentage, 5)}%` }}
+              />
+              <CloseButton
+                onClick={(e) => {
+                  e.preventDefault(); // Prevents the default action of the event
+                  e.stopPropagation(); // Prevents the event from bubbling up to any parent elements
+                  handleRemoveAllEpisodes(animeId);
+                }}
+              >
+                <FaCircle aria-label='Close' />
+              </CloseButton>
             </AnimeEpisodeCard>
           </StyledSwiperSlide>
         );
@@ -213,15 +297,14 @@ const AnimeEpisodeCardComponent: React.FC = () => {
       console.error('Failed to parse watched episodes data:', error);
       return [];
     }
-  }, [watchedEpisodesData, windowWidth]);
+  }, [watchedEpisodesData, windowWidth, lastVisitedData]);
 
   const swiperSettings = useMemo(
     () => ({
-      spaceBetween: 10,
+      spaceBetween: 20,
       slidesPerView: calculateSlidesPerView(windowWidth),
       loop: true,
       freeMode: true,
-      centerSlides: false,
       grabCursor: true,
       keyboard: true,
       touchRatio: 1.2,
@@ -238,20 +321,36 @@ const AnimeEpisodeCardComponent: React.FC = () => {
   );
 
   return (
-    <Section>
+    <Section aria-labelledby='continueWatchingTitle'>
       {episodesToRender.length > 0 && (
-        <ContinueWatchingTitle>CONTINUE WATCHING</ContinueWatchingTitle>
+        <ContinueWatchingTitle id='continueWatchingTitle'>
+          CONTINUE WATCHING
+        </ContinueWatchingTitle>
       )}
-      <StyledSwiperContainer {...swiperSettings}>
+      <StyledSwiperContainer {...swiperSettings} aria-label='Episodes carousel'>
         {episodesToRender}
-        <FaChevronCircleLeft
+        <button
+          aria-label='Previous episode'
           className='swiper-button-prev'
-          style={{ color: 'rgba(255, 255, 255, 0.85)' }}
-        />
-        <FaChevronCircleRight
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255, 255, 255, 0.85)',
+          }}
+        >
+          <FaChevronCircleLeft aria-hidden='true' />
+        </button>
+        <button
+          aria-label='Next episode'
           className='swiper-button-next'
-          style={{ color: 'rgba(255, 255, 255, 0.85)' }}
-        />
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255, 255, 255, 0.85)',
+          }}
+        >
+          <FaChevronCircleRight aria-hidden='true' />
+        </button>
       </StyledSwiperContainer>
     </Section>
   );
