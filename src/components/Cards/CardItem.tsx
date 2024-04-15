@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { SkeletonCard, type Anime } from '../../index'; // Adjust the import path to correctly point to your index.ts location
 import { FaPlay } from 'react-icons/fa'; // For the play icon
 import { TbCardsFilled } from 'react-icons/tb';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaCalendarAlt } from 'react-icons/fa';
 
 const slideUpAnimation = keyframes`
   0% { opacity: 0.4; transform: translateY(10px); }
@@ -120,16 +120,27 @@ const IndicatorDot = styled.div`
   height: 0.5rem;
   border-radius: 50%;
   margin: 0rem;
-`;
-
-const Dot = styled(IndicatorDot)`
-  background-color: #aaff00;
   flex-shrink: 0;
 `;
 
 const CompletedIndicator = styled(IndicatorDot)`
-  background-color: #00aaff;
-  flex-shrink: 0;
+  background-color: var(--completed-indicator-color);
+`;
+
+const CancelledIndicator = styled(IndicatorDot)`
+  background-color: var(--cancelled-indicator-color);
+`;
+
+const NotYetAiredIndicator = styled(IndicatorDot)`
+  background-color: var(--not-yet-aired-indicator-color);
+`;
+
+const OngoingIndicator = styled(IndicatorDot)`
+  background-color: var(--ongoing-dot-color);
+`;
+
+const DefaultIndicator = styled(IndicatorDot)`
+  background-color: var(--default-indicator-color);
 `;
 
 const Title = styled.h5<{ $isHovered: boolean; color?: string }>`
@@ -178,6 +189,7 @@ const CardDetails = styled.div`
   overflow: hidden; // Ensures that overflow text is hidden
   text-overflow: ellipsis; // Adds an ellipsis to indicate that text has been cut off
   svg {
+    margin-bottom: 0.12rem;
     margin-right: -0.4rem;
   }
 `;
@@ -189,7 +201,7 @@ const CardItemContent: React.FC<{ anime: Anime }> = ({ anime }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 300);
+    }, 0);
 
     return () => clearTimeout(timer);
   }, [anime.id]);
@@ -218,13 +230,15 @@ const CardItemContent: React.FC<{ anime: Anime }> = ({ anime }) => {
   const handleStatusCheck = useMemo(() => {
     switch (anime.status) {
       case 'Ongoing':
-      case 'RELEASING':
-        return <Dot />;
+        return <OngoingIndicator />;
       case 'Completed':
-      case 'FINISHED':
         return <CompletedIndicator />;
+      case 'Cancelled':
+        return <CancelledIndicator />;
+      case 'Not yet aired':
+        return <NotYetAiredIndicator />;
       default:
-        return null;
+        return <DefaultIndicator />;
     }
   }, [anime.status]);
 
@@ -289,7 +303,12 @@ const CardItemContent: React.FC<{ anime: Anime }> = ({ anime }) => {
                 {truncateTitle(anime.title.romaji || '', 24)}
               </CardDetails>
               <CardDetails title='Card Details'>
-                {anime.releaseDate}
+                {anime.releaseDate && (
+                  <>
+                    <FaCalendarAlt />
+                    {anime.releaseDate}
+                  </>
+                )}
                 {(anime.totalEpisodes || anime.episodes) && (
                   <>
                     <TbCardsFilled />
