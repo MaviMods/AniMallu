@@ -50,7 +50,7 @@ const DarkOverlay = styled.div`
   bottom: 0;
   border-radius: var(--global-border-radius);
   z-index: 1;
-  background: linear-gradient(45deg, rgba(8, 8, 8, 1) 0%, transparent 55%);
+  background: linear-gradient(45deg, rgba(8, 8, 8, 1) 0%, transparent 60%);
 `;
 
 const SlideImageWrapper = styled.div`
@@ -60,14 +60,12 @@ const SlideImageWrapper = styled.div`
   border-radius: var(--global-border-radius);
 `;
 
-const SlideImage = styled.img<{ $cover: string; $image: string }>`
+const SlideImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: var(--global-border-radius);
   position: absolute;
-  content: ${(props) =>
-    props.$cover === props.$image ? BannerNotFound : props.$cover};
 `;
 
 const ContentWrapper = styled.div`
@@ -103,7 +101,7 @@ const SlideContent = styled.div`
 
 const SlideTitle = styled.h2`
   color: var(--white, #fff);
-  font-size: clamp(1.2rem, 3vw, 3rem);
+  font-size: clamp(1.2rem, 3vw, 2.5rem);
   margin: auto;
   max-width: 100%;
   overflow: hidden;
@@ -206,7 +204,8 @@ const PlayButton = styled.button`
 
   @media (max-width: 500px) {
     border-radius: 50%;
-    padding: 1.5rem; /* Adjusted for small devices */
+    padding: 1.4rem; /* Adjusted for small devices */
+    padding-right: 1.5rem;
     font-size: 1.25rem; /* Adjusted font size for small devices */
     span {
       display: none;
@@ -217,7 +216,7 @@ const PlayButton = styled.button`
 const PlayIcon = styled(FaPlay)`
   margin-right: 0.5rem;
   @media (max-width: 500px) {
-    margin-right: 0;
+    margin: 0 0 0 0.25rem;
   }
 `;
 const PaginationStyle = styled.div`
@@ -258,7 +257,11 @@ export const HomeCarousel: FC<HomeCarouselProps> = ({
   };
 
   const validData = data.filter(
-    (item) => item.title && item.title.english && item.description,
+    (item) =>
+      item.title &&
+      item.title.english &&
+      item.description &&
+      item.cover !== item.image,
   );
   const formatGenres = (genres: string[]): string => genres.join(', ');
   return (
@@ -271,10 +274,10 @@ export const HomeCarousel: FC<HomeCarouselProps> = ({
             spaceBetween={30}
             slidesPerView={1}
             loop={true}
-            // autoplay={{
-            //   delay: 3000,
-            //   disableOnInteraction: false,
-            // }}
+            autoplay={{
+              delay: 5000,
+              disableOnInteraction: false,
+            }}
             navigation={{
               nextEl: '.swiper-button-next',
               prevEl: '.swiper-button-prev',
@@ -289,13 +292,12 @@ export const HomeCarousel: FC<HomeCarouselProps> = ({
             virtual={true}
             grabCursor={true}
             keyboard={true}
-            touchRatio={1}
+            touchRatio={1.2}
             centeredSlides={true}
           >
             {validData.map(
               ({
                 id,
-                image,
                 cover,
                 title,
                 description,
@@ -312,19 +314,30 @@ export const HomeCarousel: FC<HomeCarouselProps> = ({
                 >
                   <SlideImageWrapper>
                     <SlideImage
-                      src={cover === image ? BannerNotFound : cover}
+                      src={cover}
                       alt={title.english || title.romaji + ' Banner Image'}
-                      $cover={cover}
-                      $image={image}
                       loading='eager'
                     />
                     <ContentWrapper>
                       <SlideContent>
                         <SlideTitle>{truncateTitle(title.english)}</SlideTitle>
                         <SlideInfo>
-                          {type} <TbCardsFilled /> {totalEpisodes} <FaStar />{' '}
-                          {rating}
-                          <FaClock /> {duration} mins
+                          {type && (
+                            <>
+                              {type} <TbCardsFilled /> {totalEpisodes}
+                            </>
+                          )}
+                          {rating && (
+                            <>
+                              <FaStar />
+                              {rating}
+                            </>
+                          )}
+                          {duration && (
+                            <>
+                              <FaClock /> {duration} mins
+                            </>
+                          )}
                         </SlideInfo>
                         <SlideDescription
                           dangerouslySetInnerHTML={{ __html: description }}
