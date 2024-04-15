@@ -1,5 +1,5 @@
 <h1 align="center">
-MIRURO
+AniMallu
 </h1>
 
 <p align="center">
