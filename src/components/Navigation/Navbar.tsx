@@ -37,7 +37,7 @@ const StyledNavbar = styled.div<{ $isExtended?: boolean }>`
   animation: ${fadeInAnimation('var(--global-primary-bg-tr)')} 0.5s ease-out;
   transition: 0.1s ease-in-out;
 
-  @media (max-width: 1000px) {
+  @media (max-width: 500px) {
     padding: 1rem 0.5rem;
   }
 `;
@@ -233,13 +233,13 @@ const getInitialThemePreference = () => {
   return detectUserTheme();
 };
 
-const Navbar = () => {
+export const Navbar = () => {
   const [isPaddingExtended, setIsPaddingExtended] = useState(false);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [inputContainerWidth, setInputContainerWidth] = useState(0);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
   const navbarRef = useRef(null);
   const dropdownRef = useRef<HTMLDivElement>(null); // Ref for the dropdown container
@@ -342,7 +342,14 @@ const Navbar = () => {
 
   const navigateWithQuery = useCallback(
     (value: string) => {
-      navigate(value ? `/search?query=${value}` : '/search');
+      if (location.pathname == '/search') {
+        const params = new URLSearchParams();
+
+        params.set('query', value);
+        setSearchParams(params, { replace: true });
+      } else {
+        navigate(value ? `/search?query=${value}` : '/search');
+      }
     },
     [navigate],
   );
@@ -359,7 +366,7 @@ const Navbar = () => {
         ...prevState,
         isDropdownOpen: true,
       }));
-    }, 100);
+    }, 300);
   };
 
   const handleKeyDownOnInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -455,11 +462,11 @@ const Navbar = () => {
         <NavbarWrapper>
           <TopContainer>
             <LogoImg
-              title='AniMallu'
+              title='animallu'
               to='/home'
               onClick={() => window.scrollTo(0, 0)}
             >
-              AniMallu
+              見るろ の 久遠
             </LogoImg>
 
             {/* Render InputContainer within the navbar for screens larger than 500px */}
@@ -524,9 +531,10 @@ const Navbar = () => {
               <StyledButton onClick={toggleTheme} aria-label='Toggle Dark Mode'>
                 {isDarkMode ? <FiSun /> : <FiMoon />}
               </StyledButton>
-              {/* <StyledButton onClick={navigateToProfile}>
-              <FiMenu />
-            </StyledButton> */}
+              {/* {<StyledButton onClick={navigateToProfile}>
+                <FiMenu />
+              </StyledButton>
+              } */}
             </RightContent>
           </TopContainer>
 
@@ -577,5 +585,3 @@ const Navbar = () => {
     </>
   );
 };
-
-export default Navbar;
