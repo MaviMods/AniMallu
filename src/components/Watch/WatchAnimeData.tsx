@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import AniList_logo from '../../assets/logos/anilsmall.png';
-import MAL_logo from '../../assets/logos/malsmall.png';
 import Seasons from './Seasons';
 import { Anime } from '../../hooks/interface';
+import { SiMyanimelist, SiAnilist } from 'react-icons/si';
 
 const slideUpAnimation = keyframes`
   0% { opacity: 0.4; transform: translateY(20px); }
@@ -25,7 +24,9 @@ const AnimeDataContainer = styled.div`
 
 const AnimeDataContainerTop = styled.div`
   border-radius: var(--global-border-radius);
-  padding-top: 1rem;
+  background-color: var(--global-div-tr);
+  margin: 1rem 0;
+  padding: 0.75rem;
   color: var(--global-text);
   align-items: center;
   flex-direction: row;
@@ -47,7 +48,7 @@ const AnimeDataContainerMiddle = styled.div`
 
 const AnimeDataContainerBottom = styled.div`
   margin-top: 0.6rem;
-  @media (max-width: 500px) {
+  @media (max-width: 750px) {
     margin-top: 0rem;
   }
 `;
@@ -66,9 +67,6 @@ const ParentContainer = styled.div`
 const AnimeDataText = styled.div`
   text-align: left;
   font-size: 0.8rem;
-  @media (max-width: 500px) {
-    font-size: 0.75rem;
-  }
   .anime-title {
     line-height: 1.6rem;
     font-size: 1.5rem;
@@ -101,12 +99,15 @@ const AnimeDataText = styled.div`
   }
   .Description {
     line-height: 1rem;
+    max-width: 50rem;
+    font-size: 0.9rem;
   }
   strong {
     color: var(--global-text);
   }
-  .Card-Sections-Titles {
+  .Seasons-Sections-Titles {
     color: var(--global-text);
+    margin-top: 1rem;
     font-size: 1.25rem;
     font-weight: bold;
   }
@@ -175,32 +176,54 @@ const MalAniContainer = styled.div`
   margin-right: 1rem;
 `;
 
-const MalAnilistimg = styled.img`
-  border-radius: var(--global-border-radius);
+const MalAnilistSvg = styled.div`
   height: 2.5rem;
-  transition: transform 0.2s ease-in-out;
   width: 5rem;
-  object-fit: cover;
+  border-radius: var(--global-border-radius);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--global-div);
+  color: var(--global-text);
+  transition: 0.1s ease-in-out;
+
   &:hover,
   &:active,
   &:focus {
     transform: scale(1.05);
   }
+
   &:active {
-    transform: scale(0.9);
+    transform: scale(0.975);
   }
+
   @media (max-width: 500px) {
     width: 4rem;
     height: 2rem;
   }
 `;
 
-const ShowMoreButton = styled.div`
+const ShowMoreButton = styled.button`
+  background-color: var(--global-div);
+  color: #828181;
   display: flex;
+  border: none;
+  padding: 0.5rem;
+  border-radius: var(--global-border-radius);
+  margin: 0.5rem 0;
   text-align: left;
+  &:hover,
+  &:active,
+  &:focus {
+    background-color: var(--global-div);
+  }
   transition:
     color 0.3s ease,
     transform 0.2s ease-in-out;
+  @media (max-width: 500px) {
+    margin: 0rem;
+    margin-top: 1rem;
+  }
 `;
 
 const IframeTrailer = styled.iframe`
@@ -328,18 +351,24 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
               <MalAniContainer>
                 {animeData.id && (
                   <a
-                    href={`https://anilist.co/anime/${animeData.id}`}
+                    href={`https://anilist.co/${!animeData.type ? 'anime' : animeData.type.toLowerCase() === 'manga' || animeData.type.toLowerCase() === 'novel' ? 'manga' : 'anime'}/${animeData.id}`}
                     target='_blank'
+                    rel='noopener noreferrer'
                   >
-                    <MalAnilistimg src={AniList_logo} alt='AniList Logo' />
+                    <MalAnilistSvg>
+                      <SiAnilist size={'1.5rem'} />
+                    </MalAnilistSvg>
                   </a>
                 )}
                 {animeData.malId && (
                   <a
-                    href={`https://myanimelist.net/anime/${animeData.malId}`}
+                    href={`https://myanimelist.net/${!animeData.type ? 'anime' : animeData.type.toLowerCase() === 'manga' || animeData.type.toLowerCase() === 'novel' ? 'manga' : 'anime'}/${animeData.malId}`}
                     target='_blank'
+                    rel='noopener noreferrer'
                   >
-                    <MalAnilistimg src={MAL_logo} alt='MyAnimeList Logo' />
+                    <MalAnilistSvg>
+                      <SiMyanimelist size={'2.75rem'} />
+                    </MalAnilistSvg>
                   </a>
                 )}
               </MalAniContainer>
@@ -375,56 +404,86 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
               <ParentContainer>
                 <AnimeDataContainerMiddle>
                   <AnimeDataText>
-                    {animeData.type && (
+                    {animeData.type ? (
                       <p>
                         Type: <strong>{animeData.type}</strong>
                       </p>
-                    )}
-                    {animeData.releaseDate && (
+                    ) : (
                       <p>
-                        Year:{' '}
-                        <strong>
-                          {animeData.releaseDate
-                            ? animeData.releaseDate
-                            : 'Unknown'}
-                        </strong>
+                        Type: <strong>Unknown</strong>
+                      </p>
+                    )}
+                    {animeData.releaseDate ? (
+                      <p>
+                        Year: <strong>{animeData.releaseDate}</strong>
+                      </p>
+                    ) : (
+                      <p>
+                        Year: <strong>Unknown</strong>
                       </p>
                     )}
                     {animeData.status && (
                       <p>
-                        Status: <strong>{animeData.status}</strong>
+                        Status:{' '}
+                        <strong>
+                          {animeData.status === 'Completed'
+                            ? 'Finished'
+                            : animeData.status === 'Ongoing'
+                              ? 'Airing'
+                              : animeData.status}
+                        </strong>
                       </p>
                     )}
-                    {animeData.rating && (
+                    {animeData.rating ? (
                       <p>
                         Rating: <strong>{animeData.rating}</strong>
                       </p>
+                    ) : (
+                      <p>
+                        Rating: <strong>Unknown</strong>
+                      </p>
                     )}
-                    {animeData.studios && (
+                    {animeData.studios && animeData.studios.length > 0 ? (
                       <p>
                         Studios: <strong>{animeData.studios}</strong>
+                      </p>
+                    ) : (
+                      <p>
+                        Studios: <strong>Unknown</strong>
                       </p>
                     )}
                   </AnimeDataText>
                 </AnimeDataContainerMiddle>
                 <AnimeDataContainerBottom>
                   <AnimeDataText>
-                    {animeData.totalEpisodes && (
+                    {animeData.totalEpisodes !== null ? (
                       <p>
                         Episodes: <strong>{animeData.totalEpisodes}</strong>
                       </p>
+                    ) : (
+                      <p>
+                        Episodes: <strong>Unknown</strong>
+                      </p>
                     )}
-                    {animeData.duration && (
+                    {animeData.duration ? (
                       <p>
                         Duration: <strong>{animeData.duration} min</strong>
                       </p>
+                    ) : (
+                      <p>
+                        Duration: <strong>Unknown</strong>
+                      </p>
                     )}
-                    {animeData.season && (
+                    {animeData.season ? (
                       <p>
                         Season:{' '}
                         <strong>
                           {capitalizeFirstLetter(animeData.season)}
                         </strong>
+                      </p>
+                    ) : (
+                      <p>
+                        Season: <strong>Unknown</strong>
                       </p>
                     )}
                     {animeData.countryOfOrigin && (
@@ -460,9 +519,13 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
                         </strong>
                       </p>
                     )} */}
-                    {animeData.genres && (
+                    {animeData.genres && animeData.genres.length > 0 ? (
                       <p>
                         Genres: <strong>{animeData.genres.join(', ')}</strong>
+                      </p>
+                    ) : (
+                      <p>
+                        Genres: <strong>Unknown</strong>
                       </p>
                     )}
                   </AnimeDataText>
@@ -472,7 +535,6 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
           </AnimeDataContainerTop>
           {isScreenUnder500px() && animeData.description && (
             <AnimeDataText>
-              <br></br>
               <p className='Description'>
                 <strong>Description: </strong>
                 <ShowMoreButton onClick={toggleDescription}>
@@ -486,16 +548,15 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
           )}
         </AnimeDataContainer>
       )}
-      <AnimeDataText>
-        <br />
-        {animeData.relations &&
-          animeData.relations.some(
-            (relation: any) =>
-              relation.relationType.toUpperCase() === 'PREQUEL' ||
-              relation.relationType.toUpperCase() === 'SEQUEL',
-          ) && (
-            <>
-              <p className='Card-Sections-Titles'>SEASONS</p>
+      {animeData.relations &&
+        animeData.relations.some(
+          (relation: any) =>
+            relation.relationType.toUpperCase() === 'PREQUEL' ||
+            relation.relationType.toUpperCase() === 'SEQUEL',
+        ) && (
+          <>
+            <AnimeDataText>
+              <p className='Seasons-Sections-Titles'>SEASONS</p>
               <Seasons
                 relations={animeData.relations.filter(
                   (relation: any) =>
@@ -503,9 +564,9 @@ const WatchAnimeData: React.FC<{ animeData: Anime }> = ({ animeData }) => {
                     relation.relationType.toUpperCase() === 'SEQUEL',
                 )}
               />
-            </>
-          )}
-      </AnimeDataText>
+            </AnimeDataText>
+          </>
+        )}
     </>
   );
 };
