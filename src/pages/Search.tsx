@@ -29,7 +29,7 @@ const Container = styled.div`
 
 const anyOption: Option = { value: '', label: 'Any' };
 
-const SearchSort = () => {
+const Search = () => {
   const [searchParams /* setSearchParams */] = useSearchParams();
   const initialQuery = searchParams.get('query') || '';
   const [query, setQuery] = useState<string>(initialQuery);
@@ -163,4 +163,4 @@ const SearchSort = () => {
   );
 };
 
-export default SearchSort;
+export default Search;
