@@ -13,8 +13,14 @@ const BASE_URL = ensureUrlEndsWithSlash(
 const SKIP_TIMES = ensureUrlEndsWithSlash(
   import.meta.env.VITE_SKIP_TIMES as string,
 );
+// Default to the built-in same-origin proxy (api/json.ts). A custom
+// VITE_PROXY_URL is still honoured, except the legacy corsproxy.io value,
+// which has no /api/json endpoint and rejects production origins.
+const configuredProxy = import.meta.env.VITE_PROXY_URL as string | undefined;
 const PROXY_URL = ensureUrlEndsWithSlash(
-  import.meta.env.VITE_PROXY_URL as string,
+  configuredProxy && !configuredProxy.includes('corsproxy.io')
+    ? configuredProxy
+    : window.location.origin,
 );
 
 // Creating axios instance with proxy server base URL
