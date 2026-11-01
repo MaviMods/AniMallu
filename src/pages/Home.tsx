@@ -170,24 +170,32 @@ const Home = () => {
     const fetchData = async () => {
       try {
         setState((prevState) => ({ ...prevState, error: null }));
-        const [trending, popular, topRated, topAiring, Upcoming, recent] =
-          await Promise.all([
-            fetchTrendingAnime(1, fetchCount),
-            fetchPopularAnime(1, fetchCount),
-            fetchTopAnime(1, fetchCount),
-            fetchTopAiringAnime(1, 6),
-            fetchUpcomingSeasons(1, 6),
-            fetchRecentEpisodes(1, fetchCount),
-          ]);
-        const recentEpisodesTrimmed = recent.results.slice(0, itemsCount);
+        // allSettled so one failing endpoint doesn't blank the whole page
+        const results = await Promise.allSettled([
+          fetchTrendingAnime(1, fetchCount),
+          fetchPopularAnime(1, fetchCount),
+          fetchTopAnime(1, fetchCount),
+          fetchTopAiringAnime(1, 6),
+          fetchUpcomingSeasons(1, 6),
+          fetchRecentEpisodes(1, fetchCount),
+        ]);
+        if (results.every((r) => r.status === 'rejected')) {
+          throw (results[0] as PromiseRejectedResult).reason;
+        }
+        const list = (i: number): Anime[] => {
+          const r = results[i];
+          return r.status === 'fulfilled' && Array.isArray(r.value?.results)
+            ? filterAndTrimAnime(r.value)
+            : [];
+        };
         setState((prevState) => ({
           ...prevState,
-          trendingAnime: filterAndTrimAnime(trending),
-          popularAnime: filterAndTrimAnime(popular),
-          topAnime: filterAndTrimAnime(topRated),
-          topAiring: filterAndTrimAnime(topAiring),
-          Upcoming: filterAndTrimAnime(Upcoming),
-          recentEpisodes: recentEpisodesTrimmed,
+          trendingAnime: list(0),
+          popularAnime: list(1),
+          topAnime: list(2),
+          topAiring: list(3),
+          Upcoming: list(4),
+          recentEpisodes: list(5),
         }));
       } catch (fetchError) {
         setState((prevState) => ({
